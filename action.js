@@ -1,32 +1,30 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const axios = require('axios');
 const path = require('path');
-const randomUser = require('random-user');
+const process = require('process');
 
 // for you to change easily
 const dataFolder = '/data';
 const now = new Date();
 const pathToData = path.join(__dirname, dataFolder, fileString(now)) + '.json';
 
-// read data, if needed
-let data = [];
-if (fs.existsSync(pathToData)) {
-  data = JSON.parse(fs.readFileSync(pathToData));
-}
-
 // scrape data, possibly using prior data
 async function getData() {
-  const user = await randomUser('simple');
-  user.invokedAt = now;
-  data.push(user);
+	let result = await axios.get(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=UCgIfLpQvelloDi8I0Ycbwpg&fields=items/statistics/subscriberCount&key=${process.env.API_KEY}`);
+	return {
+		"sub_count": result.data.items[0].statistics.subscriberCount,
+		"time": new Date().toUTCString(),
+	};
 }
 
 // execute and persist data
 getData() // no top level await... yet
-  .then(() => {
+  .then(data => {
+    console.log(data);
     // persist data
-    fs.writeFileSync(path.resolve(pathToData), JSON.stringify(data, null, 2));
+    fs.appendFileSync(path.resolve(pathToData), JSON.stringify(data) + "\n");
   });
 
 /**
